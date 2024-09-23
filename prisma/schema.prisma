@@ -1,0 +1,323 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id                     String                    @id @default(uuid())
+  username               String                    @unique
+  email                  String                    @unique
+  password               String
+  role                   String                    // E.g., "Lawyer", "Client", "Admin", etc.
+  createdAt              DateTime                  @default(now())
+  updatedAt              DateTime                  @updatedAt
+  Lawyers                Lawyer[]                  @relation("UserLawyers")
+  Clients                Client[]                  @relation("UserClients")
+  Notifications          Notification[]
+  ReservationParticipants ReservationParticipant[]
+  Documents              Document[]
+  ChatsInitiated         Chat[]                    @relation("ChatInitiator")
+  ChatsReceived          Chat[]                    @relation("ChatReceiver")
+  MessagesSent           Message[]                 @relation("MessageSender")
+  CallsInitiated         Call[]                    @relation("CallInitiator")
+  CallsReceived          Call[]                    @relation("CallReceiver")
+  CallLogs               CallLog[]
+  Followers      FollowerRelation[]        @relation("UserFollowers")
+  Followings     FollowerRelation[]        @relation("UserFollowing")
+
+  Office Office[] @relation("LawyerOffices")
+}
+
+model Lawyer {
+  id                     String                @id @default(uuid())
+  userId                 String                @unique
+  specialization         String
+  licenseNumber          String
+  yearsOfExperience      Int
+  profileDescription     String
+  legalRole              String 
+  availability           Json
+  ratings                Int
+  totalReviews           Int
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
+  user                   User                 @relation("UserLawyers", fields: [userId], references: [id])
+  Reservations           Reservation[]
+  Appointments           Appointment[]
+  LawyerAvailability    LawyerAvailability[]
+  Reviews                Review[]
+  Feedback               Feedback[]
+}
+
+model Client {
+  id          String    @id @default(uuid())
+  userId      String    @unique
+  phoneNumber String
+  address     String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  user        User      @relation("UserClients", fields: [userId], references: [id])
+  Reservations Reservation[]
+  Feedback     Feedback[]
+  Appointments Appointment[]
+}
+
+model Reservation {
+  id                String   @id @default(uuid())
+  lawyerId          String
+  clientId          String
+  date              DateTime
+  timeSlot          String
+  status            String
+  paymentId         String?
+  sessionNotes      String
+  feedbackId        String?
+  documentsShared   Int
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  Lawyer            Lawyer   @relation(fields: [lawyerId], references: [id])
+  Client            Client   @relation(fields: [clientId], references: [id])
+  Payments          Payment? @relation(name: "PaymentToReservation")
+  Feedbacks         Feedback[]
+  Documents         Document[]
+  Chats             Chat[]
+  Calls             Call[]
+  Appointments      Appointment[]
+  ScheduledMeetings ScheduledMeeting[]
+  Review            Review[]
+  ReservationParticipant ReservationParticipant[]
+
+  @@index([lawyerId])
+  @@index([clientId])
+  @@index([paymentId])
+}
+
+model ReservationParticipant {
+  id              String   @id @default(uuid())
+  reservationId   String
+  userId          String
+  participantRoleId String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  Reservation     Reservation @relation(fields: [reservationId], references: [id])
+  User            User       @relation(fields: [userId], references: [id])
+  ParticipantRole ParticipantRole @relation(fields: [participantRoleId], references: [id])
+}
+
+model Payment {
+  id              String   @id @default(uuid())
+  reservationId   String  @unique
+  amount          Float
+  status          String
+  paymentMethod   String
+  transactionId   String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  Reservation     Reservation @relation(name: "PaymentToReservation", fields: [reservationId], references: [id])
+}
+
+model Feedback {
+  id             String   @id @default(uuid())
+  reservationId  String
+  clientId       String
+  lawyerId       String
+  rating         Int
+  comments       String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  Reservation    Reservation @relation(fields: [reservationId], references: [id])
+  Client         Client      @relation(fields: [clientId], references: [id])
+  Lawyer         Lawyer      @relation(fields: [lawyerId], references: [id])
+}
+
+model Document {
+  id              String   @id @default(uuid())
+  reservationId   String
+  uploadedByUserId String
+  filePath        String
+  fileType        String
+  description     String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  Reservation     Reservation @relation(fields: [reservationId], references: [id])
+  User            User       @relation(fields: [uploadedByUserId], references: [id])
+}
+
+model Notification {
+  id             String   @id @default(uuid())
+  userId         String
+  type           String
+  message        String
+  isRead         Boolean
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  User           User     @relation(fields: [userId], references: [id])
+}
+
+model LawyerAvailability {
+  id           String   @id @default(uuid())
+  lawyerId     String
+  dayOfWeek    String
+  startTime    DateTime
+  endTime      DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  Lawyer       Lawyer   @relation(fields: [lawyerId], references: [id])
+}
+
+model Appointment {
+  id                String   @id @default(uuid())
+  reservationId     String
+  lawyerId          String
+  clientId          String
+  appointmentDate   DateTime
+  startTime         DateTime
+  endTime           DateTime
+  status            String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  Reservation       Reservation @relation(fields: [reservationId], references: [id])
+  Lawyer            Lawyer      @relation(fields: [lawyerId], references: [id])
+  Client            Client      @relation(fields: [clientId], references: [id])
+}
+
+model Review {
+  id              String   @id @default(uuid())
+  reservationId   String
+  lawyerId        String
+  reviewText      String
+  rating          Int
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  Reservation     Reservation @relation(fields: [reservationId], references: [id])
+  Lawyer          Lawyer      @relation(fields: [lawyerId], references: [id])
+
+  Office Office[]
+}
+
+model Chat {
+  id              String   @id @default(uuid())
+  reservationId   String
+  initiatorId     String
+  receiverId      String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  Reservation     Reservation @relation(fields: [reservationId], references: [id])
+  Initiator       User       @relation("ChatInitiator", fields: [initiatorId], references: [id])
+  Receiver        User       @relation("ChatReceiver", fields: [receiverId], references: [id])
+  Message         Message[]
+
+  @@index([reservationId])
+  @@index([initiatorId])
+  @@index([receiverId])
+}
+
+model Message {
+  id              String   @id @default(uuid())
+  chatId          String
+  senderId        String
+  messageType     String
+  content         String
+  filePath        String?
+  isRead          Boolean
+  sentAt          DateTime
+  receivedAt      DateTime
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  Chat            Chat     @relation(fields: [chatId], references: [id])
+  Sender          User     @relation("MessageSender", fields: [senderId], references: [id])
+
+  @@index([chatId])
+  @@index([senderId])
+}
+
+model Call {
+  id              String   @id @default(uuid())
+  reservationId   String
+  initiatorId     String
+  receiverId      String
+  callStart       DateTime
+  callEnd         DateTime
+  status          String
+  callLink        String
+  callType        String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  Reservation     Reservation @relation(fields: [reservationId], references: [id])
+  Initiator       User       @relation("CallInitiator", fields: [initiatorId], references: [id])
+  Receiver        User       @relation("CallReceiver", fields: [receiverId], references: [id])
+  CallLog         CallLog[]
+
+  @@index([reservationId])
+  @@index([initiatorId])
+  @@index([receiverId])
+}
+
+model CallLog {
+  id              String   @id @default(uuid())
+  callId          String
+  participantId   String
+  joinedAt        DateTime
+  leftAt          DateTime
+  createdAt       DateTime @default(now())
+  Call            Call     @relation(fields: [callId], references: [id])
+  Participant     User     @relation(fields: [participantId], references: [id])
+
+  @@index([callId])
+  @@index([participantId])
+}
+
+model ScheduledMeeting {
+  id              String   @id @default(uuid())
+  reservationId   String
+  startTime       DateTime
+  endTime         DateTime
+  meetingLink     String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  details         String
+  eventName       String
+  Reservation     Reservation @relation(fields: [reservationId], references: [id])
+}
+
+model ParticipantRole {
+  id              String   @id @default(uuid())
+  name            String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  ReservationParticipant ReservationParticipant[]
+}
+
+model Office {
+  id               String        @id @default(uuid())
+  name             String
+  location         String
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  Lawyers          User[]        @relation("LawyerOffices")
+  Reviews          Review[]
+  Rating           Float         @default(0)
+  TotalReviews     Int           @default(0)
+
+  FollowerRelation FollowerRelation[] @relation("OfficeFollowers")
+}
+model FollowerRelation {
+  id              String   @id @default(uuid())
+  followerId      String
+  followingId     String
+  entityType      String  // "User" or "Office"
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  Follower        User?    @relation("UserFollowers", fields: [followerId], references: [id], map: "follower_fk")
+  Following       User?    @relation("UserFollowing", fields: [followingId], references: [id], map: "following_fk")
+  OfficeFollower  Office?  @relation("OfficeFollowers", fields: [followingId], references: [id], map: "office_fk")
+
+  @@index([followerId], name: "follower_idx")
+  @@index([followingId], name: "following_idx")
+  @@index([entityType], name: "entity_type_idx")
+}

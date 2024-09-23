@@ -1,0 +1,17 @@
+services:
+  db:
+    build:
+      context: ./postgres
+    container_name: my-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: legaldb
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      # - ./initdb:/docker-entrypoint-initdb.d
+
+volumes:
+  postgres-data:
