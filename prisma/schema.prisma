@@ -32,6 +32,8 @@ model User {
   Followings     FollowerRelation[]        @relation("UserFollowing")
 
   Office Office[] @relation("LawyerOffices")
+
+  Post Post[]
 }
 
 model Lawyer {
