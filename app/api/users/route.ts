@@ -35,7 +35,6 @@ export async function POST(request: Request) {
 }
 export async function GET(request: Request) {
     try {
-      // Fetch all users from the database
       const users = await prisma.user.findMany();
   
       return NextResponse.json(users, { status: 200 });

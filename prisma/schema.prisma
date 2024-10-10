@@ -3,6 +3,8 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+//post and the categories for the posts 
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -320,4 +322,36 @@ model FollowerRelation {
   @@index([followerId], name: "follower_idx")
   @@index([followingId], name: "following_idx")
   @@index([entityType], name: "entity_type_idx")
+}
+model Post {
+  id          String      @id @default(uuid())
+  title       String
+  content     String
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  authorId    String
+  author      User        @relation(fields: [authorId], references: [id])
+  categories  PostCategory[]
+}
+
+model Category {
+  id          String      @id @default(uuid())
+  name        String      @unique
+  description String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  posts       PostCategory[]
+}
+
+model PostCategory {
+  id        String   @id @default(uuid())
+  postId    String
+  categoryId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  Post      Post     @relation(fields: [postId], references: [id])
+  Category  Category @relation(fields: [categoryId], references: [id])
+
+  @@index([postId])
+  @@index([categoryId])
 }
